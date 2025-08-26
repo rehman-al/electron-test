@@ -1,8 +1,11 @@
 const {app, BrowserWindow, ipcMain, MessageChannelMain, Menu} = require('electron');
 const path = require('node:path');
 
+let mainWindow = null;
+let subWindow = null;
+
 const createWindow = () => {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
         },
@@ -19,7 +22,10 @@ const createWindow = () => {
                     }
                 },
                 {
-                    label: 'Remove item'
+                    label: 'Remove item',
+                    click(){
+                        mainWindow.webContents.send('remove-item');
+                    }
                 },
                 {
                     label: 'Quit',
@@ -50,7 +56,7 @@ const createWindow = () => {
     }
 
     const mainMenu = Menu.buildFromTemplate(mainMenuTemplate);
-    Menu.setApplicationMenu(mainMenu)
+    mainWindow.setMenu(mainMenu)
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
 
@@ -60,9 +66,8 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
 };
 
-
 const createAddWindow = () => {
-    let subWindow = new BrowserWindow({
+    subWindow = new BrowserWindow({
         width: 300,
         height: 300,
         title: 'Add shopping list items',
@@ -70,6 +75,7 @@ const createAddWindow = () => {
             preload: path.join(__dirname, 'preload.js'),
         },
     });
+    subWindow.setMenu(null);
     subWindow.loadFile(path.join(__dirname, 'subWindow.html'));
     subWindow.on('closed', () => {
         subWindow = null
@@ -77,7 +83,8 @@ const createAddWindow = () => {
 }
 
 const handleItem = (e, item) => {
-    console.log(item)
+    mainWindow.webContents.send('item', item);
+    subWindow.close();
 }
 
 app.whenReady().then(() => {
